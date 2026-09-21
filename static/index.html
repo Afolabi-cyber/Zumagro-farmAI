@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Field Unit — Scan Mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil:wght@500;700&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #E4D9BC;
+    --card: #EDE4CC;
+    --ink: #262A3D;
+    --rust: #8B4A2B;
+    --safety: #E8590C;
+    --khaki: #5B6B3F;
+    --ochre: #C08A1E;
+    --line: #B8A97C;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--paper);
+    background-image: repeating-radial-gradient(circle at 12% -8%, transparent 0, transparent 17px, rgba(38,42,61,0.05) 18px, transparent 19px);
+    color: var(--ink);
+    font-family: 'Archivo', sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 18px 18px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--rust);
+    font-weight: 600;
+  }
+  h1 {
+    font-family: 'Big Shoulders Stencil', sans-serif;
+    font-weight: 700;
+    font-size: 32px;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    line-height: 1;
+    margin: 4px 0 0;
+    text-transform: uppercase;
+  }
+  .serial {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--rust);
+    text-align: right;
+    border: 1px solid var(--line);
+    padding: 3px 6px;
+    transform: rotate(2deg);
+    white-space: nowrap;
+  }
+  .serial .num { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 18px 22px;
+    gap: 4px;
+  }
+
+  .field-block { padding: 8px 0; }
+  .field-block label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--rust);
+    letter-spacing: 0.06em;
+    margin-bottom: 5px;
+  }
+  .field-block label::after { content: " —"; }
+  .field-block input {
+    width: 100%;
+    padding: 10px 11px;
+    background: var(--card);
+    border: none;
+    border-bottom: 2px solid var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .field-block input:focus { outline: none; border-bottom-color: var(--safety); }
+
+  .status-strip {
+    display: flex;
+    gap: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink);
+    padding: 4px 0 10px;
+    flex-wrap: wrap;
+  }
+  .status-strip .item { display: flex; align-items: center; gap: 5px; }
+  .status-strip .item .sq { width: 6px; height: 6px; background: var(--rust); display: inline-block; flex: none; }
+  .status-strip .item.ok .sq { background: var(--khaki); }
+
+  .viewfinder {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: #1A1D29;
+    overflow: hidden;
+  }
+  .viewfinder video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .viewfinder .placeholder {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #C9BB98;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-align: center;
+    padding: 20px;
+  }
+  .bracket {
+    position: absolute;
+    width: 20px; height: 20px;
+    border-color: var(--ochre);
+    border-style: solid;
+    border-width: 0;
+  }
+  .bracket.tl { top: 10px; left: 10px; border-top-width: 2px; border-left-width: 2px; }
+  .bracket.tr { top: 10px; right: 10px; border-top-width: 2px; border-right-width: 2px; }
+  .bracket.bl { bottom: 10px; left: 10px; border-bottom-width: 2px; border-left-width: 2px; }
+  .bracket.br { bottom: 10px; right: 10px; border-bottom-width: 2px; border-right-width: 2px; }
+
+  .rec-indicator {
+    position: absolute;
+    top: 10px; left: 38px;
+    display: none;
+    align-items: center;
+    gap: 5px;
+    background: rgba(0,0,0,0.5);
+    padding: 4px 8px;
+    color: var(--card);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+  }
+  .rec-indicator .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--safety);
+    animation: pulse 1.1s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .viewfinder.recording .rec-indicator { display: flex; }
+
+  .trigger-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px 0 6px;
+    gap: 20px;
+  }
+  .trigger-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--rust);
+    letter-spacing: 0.1em;
+    writing-mode: vertical-rl;
+  }
+  .shutter {
+    width: 66px; height: 66px;
+    border-radius: 50%;
+    border: 3px solid var(--ink);
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+  }
+  .shutter::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border-radius: 50%;
+    border: 1px dashed var(--line);
+  }
+  .shutter .inner {
+    width: 24px; height: 24px;
+    background: var(--safety);
+    transition: border-radius 0.2s ease, width 0.2s ease, height 0.2s ease;
+  }
+  .shutter.recording .inner {
+    border-radius: 3px;
+    width: 20px; height: 20px;
+  }
+
+  .primary-btn {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    background: var(--line);
+    color: var(--card);
+    font-family: 'Big Shoulders Stencil', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: center;
+    cursor: pointer;
+    margin-top: 14px;
+  }
+  .primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .primary-btn.secondary {
+    background: transparent;
+    color: var(--ink);
+    border: 1.5px solid var(--ink);
+  }
+
+  #uploadStatus {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--rust);
+    text-align: center;
+    min-height: 16px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">FIELD UNIT · SCAN MODE</div>
+    <h1>Farm scan</h1>
+  </div>
+  <div class="serial">NO.<span class="num" id="serialNum">----</span></div>
+</header>
+
+<main>
+  <div class="field-block">
+    <label for="farmId">Farm ID</label>
+    <input id="farmId" type="text" placeholder="e.g. ZUMAGRO-FARM-014" />
+  </div>
+
+  <div class="status-strip">
+    <span class="item" id="gpsStatus"><span class="sq"></span><span id="gpsText">GPS LOCK — locating</span></span>
+    <span class="item" id="camStatus"><span class="sq"></span><span id="camText">LENS — off</span></span>
+  </div>
+
+  <div class="viewfinder" id="viewfinder">
+    <video id="preview" playsinline muted autoplay></video>
+    <div class="placeholder" id="placeholder">TAP "ENABLE LENS" BELOW TO ARM THE VIEWFINDER</div>
+    <div class="bracket tl"></div><div class="bracket tr"></div>
+    <div class="bracket bl"></div><div class="bracket br"></div>
+    <div class="rec-indicator"><span class="dot"></span><span id="recTimer">REC 00:00</span></div>
+  </div>
+
+  <button class="primary-btn secondary" id="enableCamBtn" style="margin-top:14px;">Enable lens</button>
+
+  <div class="trigger-row">
+    <div class="trigger-hint">TAP TO ARM</div>
+    <div class="shutter" id="shutterBtn"><div class="inner"></div></div>
+    <div class="trigger-hint" id="sampleCountHint">00 SAMPLE</div>
+  </div>
+
+  <button class="primary-btn" id="uploadBtn" disabled>Submit for processing</button>
+  <div id="uploadStatus"></div>
+
+  <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--rust);letter-spacing:0.08em;margin-bottom:8px;">— OR SINGLE SHOT —</div>
+    <label class="primary-btn secondary" for="photoInput" style="display:block;cursor:pointer;">Upload a single photo instead</label>
+    <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;" />
+    <div id="photoStatus" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--rust);margin-top:8px;min-height:16px;"></div>
+  </div>
+</main>
+
+<script>
+const API_BASE = "";
+
+let stream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordedBlob = null;
+let gps = { lat: null, lon: null };
+let recordStartTime = null;
+let recTimerInterval = null;
+
+document.getElementById('serialNum').textContent = String(Math.floor(Math.random() * 900) + 100).padStart(4, '0');
+
+const gpsStatus = document.getElementById('gpsStatus');
+const gpsText = document.getElementById('gpsText');
+const camStatus = document.getElementById('camStatus');
+const camText = document.getElementById('camText');
+const preview = document.getElementById('preview');
+const placeholder = document.getElementById('placeholder');
+const viewfinder = document.getElementById('viewfinder');
+const enableCamBtn = document.getElementById('enableCamBtn');
+const shutterBtn = document.getElementById('shutterBtn');
+const uploadBtn = document.getElementById('uploadBtn');
+const uploadStatus = document.getElementById('uploadStatus');
+const farmIdInput = document.getElementById('farmId');
+const recTimer = document.getElementById('recTimer');
+const sampleCountHint = document.getElementById('sampleCountHint');
+
+function lockGps() {
+  if (!navigator.geolocation) {
+    gpsText.textContent = "GPS LOCK — unsupported";
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      gps.lat = pos.coords.latitude;
+      gps.lon = pos.coords.longitude;
+      gpsStatus.classList.add('ok');
+      gpsText.textContent = `GPS LOCK ${gps.lat.toFixed(4)},${gps.lon.toFixed(4)}`;
+    },
+    () => { gpsText.textContent = "GPS LOCK — denied"; },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+enableCamBtn.addEventListener('click', async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
+    preview.srcObject = stream;
+    placeholder.style.display = 'none';
+    camStatus.classList.add('ok');
+    camText.textContent = "LENS — ready";
+    enableCamBtn.textContent = "Lens armed";
+    enableCamBtn.disabled = true;
+  } catch (err) {
+    camText.textContent = "LENS — denied";
+  }
+});
+
+shutterBtn.addEventListener('click', () => {
+  if (!stream) { alert("Enable the lens first."); return; }
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+    startRecording();
+  } else {
+    stopRecording();
+  }
+});
+
+function startRecording() {
+  recordedChunks = [];
+  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+    ? 'video/webm;codecs=vp9' : 'video/webm';
+  mediaRecorder = new MediaRecorder(stream, { mimeType });
+  mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = () => {
+    recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
+    uploadBtn.disabled = false;
+    uploadStatus.textContent = `SAMPLE CAPTURED (${(recordedBlob.size/1024/1024).toFixed(1)} MB) — ready to submit`;
+  };
+  mediaRecorder.start();
+  viewfinder.classList.add('recording');
+  shutterBtn.classList.add('recording');
+  uploadBtn.disabled = true;
+  uploadStatus.textContent = "RECORDING…";
+  recordStartTime = Date.now();
+  recTimerInterval = setInterval(() => {
+    const secs = Math.floor((Date.now() - recordStartTime) / 1000);
+    const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+    const ss = String(secs % 60).padStart(2, '0');
+    recTimer.textContent = `REC ${mm}:${ss}`;
+  }, 500);
+}
+
+function stopRecording() {
+  mediaRecorder.stop();
+  viewfinder.classList.remove('recording');
+  shutterBtn.classList.remove('recording');
+  clearInterval(recTimerInterval);
+  sampleCountHint.textContent = "01 SAMPLE";
+}
+
+uploadBtn.addEventListener('click', async () => {
+  const farmId = farmIdInput.value.trim();
+  if (!farmId) { alert("Enter a Farm ID first."); return; }
+  if (!recordedBlob) { alert("Record a scan first."); return; }
+
+  uploadBtn.disabled = true;
+  uploadStatus.textContent = "SUBMITTING — processing may take a minute";
+
+  const form = new FormData();
+  form.append('farm_id', farmId);
+  if (gps.lat !== null) form.append('lat', gps.lat);
+  if (gps.lon !== null) form.append('lon', gps.lon);
+  form.append('video', recordedBlob, 'scan.webm');
+
+  try {
+    const res = await fetch(`${API_BASE}/sessions/upload`, { method: 'POST', body: form });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    window.location.href = `/results.html?session_id=${data.session_id}`;
+  } catch (err) {
+    uploadStatus.textContent = "SUBMISSION FAILED: " + err.message;
+    uploadBtn.disabled = false;
+  }
+});
+
+lockGps();
+
+const photoInput = document.getElementById('photoInput');
+const photoStatus = document.getElementById('photoStatus');
+
+photoInput.addEventListener('change', async () => {
+  const farmId = farmIdInput.value.trim();
+  if (!farmId) { alert("Enter a Farm ID first."); photoInput.value = ""; return; }
+  const file = photoInput.files[0];
+  if (!file) return;
+
+  photoStatus.textContent = "SUBMITTING PHOTO…";
+
+  const form = new FormData();
+  form.append('farm_id', farmId);
+  if (gps.lat !== null) form.append('lat', gps.lat);
+  if (gps.lon !== null) form.append('lon', gps.lon);
+  form.append('photo', file);
+
+  try {
+    const res = await fetch(`${API_BASE}/sessions/upload-photo`, { method: 'POST', body: form });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    window.location.href = `/results.html?session_id=${data.session_id}`;
+  } catch (err) {
+    photoStatus.textContent = "PHOTO SUBMISSION FAILED: " + err.message;
+  }
+});
+</script>
+
+</body>
+</html>

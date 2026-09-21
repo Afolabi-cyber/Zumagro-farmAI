@@ -1,0 +1,14 @@
+venv/
+__pycache__/
+*.pyc
+.env
+
+farm_observations.db
+evidence/*
+!evidence/.gitkeep
+uploads/*
+!uploads/.gitkeep
+test_videos/*
+!test_videos/.gitkeep
+
+.DS_Store

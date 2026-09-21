@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Field Unit — Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil:wght@500;700&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #E4D9BC;
+    --card: #EDE4CC;
+    --ink: #262A3D;
+    --rust: #8B4A2B;
+    --safety: #E8590C;
+    --khaki: #5B6B3F;
+    --ochre: #C08A1E;
+    --line: #B8A97C;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background-color: var(--paper);
+    background-image: repeating-radial-gradient(circle at 88% -6%, transparent 0, transparent 17px, rgba(38,42,61,0.05) 18px, transparent 19px);
+    color: var(--ink);
+    font-family: 'Archivo', sans-serif;
+    padding-bottom: 40px;
+  }
+  header { padding: 18px 18px 6px; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.12em; color: var(--rust); font-weight: 600;
+  }
+  h1 {
+    font-family: 'Big Shoulders Stencil', sans-serif;
+    font-weight: 700; font-size: 28px; color: var(--ink);
+    line-height: 1; margin: 4px 0 0; text-transform: uppercase;
+  }
+  .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px; color: var(--rust); margin-top: 6px;
+  }
+
+  #statusBanner {
+    margin: 12px 18px 0;
+    padding: 10px 12px;
+    background: var(--card);
+    border-left: 3px solid var(--ochre);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--rust);
+  }
+  #statusBanner.error { border-left-color: var(--safety); color: var(--safety); }
+  #statusBanner.warning { border-left-color: var(--ochre); color: var(--rust); }
+  #statusBanner.hidden { display: none; }
+
+  .counts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin: 14px 18px;
+  }
+  .count-card {
+    background: var(--card);
+    padding: 8px 3px;
+    text-align: center;
+  }
+  .count-card .num {
+    font-family: 'Big Shoulders Stencil', sans-serif;
+    font-weight: 700; font-size: 22px; color: var(--ink);
+  }
+  .count-card .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px; color: var(--rust); letter-spacing: 0.03em; text-transform: uppercase;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 4px 18px;
+  }
+  .obs-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    position: relative;
+  }
+  .obs-card .perf {
+    position: absolute; top: -1px; left: 8px; right: 8px; height: 1px;
+    background: repeating-linear-gradient(90deg, var(--line) 0 4px, transparent 4px 8px);
+  }
+  .obs-card img {
+    width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: #1A1D29;
+  }
+  .obs-card .spec-tag {
+    position: absolute; top: 4px; left: 4px;
+    font-family: 'JetBrains Mono', monospace; font-size: 8px; color: var(--card);
+    background: rgba(0,0,0,0.45); padding: 1px 4px;
+  }
+  .obs-body { padding: 9px 10px 11px; }
+  .obs-body .cat {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.05em;
+    font-weight: 600; text-transform: uppercase;
+  }
+  .cat.ground_soil_cover { color: var(--khaki); }
+  .cat.bare_soil { color: var(--rust); }
+  .cat.vegetation_diversity { color: #4A6741; }
+  .cat.tree_canopy_presence { color: #2F4A3D; }
+  .cat.visible_biodiversity { color: #3D6B6B; }
+  .cat.surface_water_erosion_evidence { color: #4A5B6B; }
+
+  .soft-flag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 7.5px;
+    letter-spacing: 0.04em;
+    color: var(--card);
+    background: var(--ochre);
+    padding: 1px 4px;
+    margin-left: 5px;
+    vertical-align: middle;
+  }
+
+  .obs-body .gauge-pct {
+    text-align: center; font-family: 'Big Shoulders Stencil', sans-serif;
+    font-weight: 700; font-size: 17px; color: var(--ink); margin-top: -4px;
+  }
+  .obs-body .sub {
+    font-family: 'JetBrains Mono', monospace; font-size: 8px; color: var(--rust);
+    text-align: center; margin-top: 3px; line-height: 1.5;
+  }
+  .obs-body a { color: var(--ink); }
+
+  .empty-state {
+    padding: 40px 18px; text-align: center;
+    font-family: 'JetBrains Mono', monospace; color: var(--rust); font-size: 12px;
+  }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">FIELD UNIT · SCAN LOG</div>
+  <h1 id="farmTitle">Loading…</h1>
+  <div class="meta" id="scanMeta"></div>
+</header>
+
+<div id="statusBanner" class="hidden"></div>
+<div class="counts" id="counts"></div>
+<div class="grid" id="grid"></div>
+<div class="empty-state hidden" id="emptyState"></div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const sessionId = params.get('session_id');
+const LABEL_NAMES = {
+  ground_soil_cover: "Ground / soil cover",
+  bare_soil: "Bare soil",
+  vegetation_diversity: "Vegetation diversity",
+  tree_canopy_presence: "Tree / canopy presence",
+  visible_biodiversity: "Visible biodiversity",
+  surface_water_erosion_evidence: "Water / erosion evidence",
+};
+
+const farmTitle = document.getElementById('farmTitle');
+const scanMeta = document.getElementById('scanMeta');
+const statusBanner = document.getElementById('statusBanner');
+const countsEl = document.getElementById('counts');
+const gridEl = document.getElementById('grid');
+const emptyState = document.getElementById('emptyState');
+
+if (!sessionId) {
+  farmTitle.textContent = "No session specified";
+} else {
+  poll();
+}
+
+function gaugeSvg(confidence) {
+  // Semicircle gauge: theta measured from the right end (0%) sweeping to the left end (100%)
+  const cx = 40, cy = 42, r = 34, needleLen = 28;
+  const thetaDeg = 180 * (1 - confidence);
+  const theta = thetaDeg * Math.PI / 180;
+  const x2 = (cx + needleLen * Math.cos(theta)).toFixed(2);
+  const y2 = (cy - needleLen * Math.sin(theta)).toFixed(2);
+  return `
+    <svg viewBox="0 0 80 46" width="100%">
+      <path d="M 6 42 A 34 34 0 0 1 74 42" fill="none" stroke="#B8A97C" stroke-width="2"/>
+      <line x1="6" y1="42" x2="11" y2="42" stroke="#8B4A2B" stroke-width="1.5"/>
+      <line x1="15.96" y1="17.96" x2="19.49" y2="21.49" stroke="#8B4A2B" stroke-width="1.5"/>
+      <line x1="40" y1="8" x2="40" y2="13" stroke="#8B4A2B" stroke-width="1.5"/>
+      <line x1="64.04" y1="17.96" x2="60.51" y2="21.49" stroke="#8B4A2B" stroke-width="1.5"/>
+      <line x1="74" y1="42" x2="69" y2="42" stroke="#8B4A2B" stroke-width="1.5"/>
+      <line x1="40" y1="42" x2="${x2}" y2="${y2}" stroke="#E8590C" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="40" cy="42" r="3" fill="#262A3D"/>
+    </svg>
+  `;
+}
+
+async function poll() {
+  try {
+    const res = await fetch(`/sessions/${sessionId}`);
+    if (!res.ok) throw new Error("Session not found");
+    const data = await res.json();
+    render(data);
+    if (data.status === 'uploaded' || data.status === 'processing') {
+      setTimeout(poll, 3000);
+    }
+  } catch (err) {
+    farmTitle.textContent = "Couldn't load this scan";
+    statusBanner.textContent = err.message;
+    statusBanner.classList.remove('hidden');
+    statusBanner.classList.add('error');
+  }
+}
+
+function render(data) {
+  farmTitle.textContent = data.farm_id;
+  scanMeta.textContent = `SESSION ${data.session_id.slice(0,8).toUpperCase()} · STARTED ${new Date(data.start_timestamp).toLocaleTimeString()} · ${data.frames_used}/${data.frames_extracted} FRAMES RETAINED`;
+
+  if (data.status === 'processing' || data.status === 'uploaded') {
+    statusBanner.textContent = "PROCESSING — extracting frames and running detection. This updates automatically.";
+    statusBanner.className = "";
+  } else if (data.status === 'failed') {
+    statusBanner.textContent = "PROCESSING FAILED: " + (data.error_message || "unknown error");
+    statusBanner.className = "error";
+  } else if (data.status === 'completed' && data.error_message) {
+    // Completed, but something still went wrong on some frames (e.g. the
+    // detector API failed partway through) - a 0-observation result with no
+    // explanation is exactly the failure mode this banner exists to prevent.
+    statusBanner.textContent = "COMPLETED WITH WARNINGS: " + data.error_message;
+    statusBanner.className = "warning";
+  } else {
+    statusBanner.className = "hidden";
+  }
+
+  countsEl.innerHTML = '';
+  const counts = data.observation_counts || {};
+  const total = Object.values(counts).reduce((a,b) => a+b, 0);
+  const summaryItems = [["Total", total], ...Object.entries(counts).map(([k,v]) => [LABEL_NAMES[k] || k, v])];
+  summaryItems.forEach(([label, num]) => {
+    const div = document.createElement('div');
+    div.className = 'count-card';
+    div.innerHTML = `<div class="num">${num}</div><div class="label">${label}</div>`;
+    countsEl.appendChild(div);
+  });
+
+  gridEl.innerHTML = '';
+  const obs = data.observations || [];
+  emptyState.classList.toggle('hidden', obs.length > 0 || data.status === 'processing' || data.status === 'uploaded');
+  if (obs.length === 0 && data.status === 'completed') {
+    emptyState.textContent = data.error_message
+      ? "NO OBSERVATIONS — SEE WARNING ABOVE. THE DETECTOR HIT AN ERROR ON THIS SCAN, THIS ISN'T NECESSARILY A CLEAN 'NOTHING FOUND' RESULT."
+      : "NO OBSERVATIONS RECORDED. NONE OF THE SIX INDICATORS WERE MATCHED IN THIS FRAME AT OR ABOVE THE CONFIDENCE THRESHOLD.";
+  }
+
+  obs
+    .slice()
+    .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp))
+    .forEach((o, i) => {
+      const card = document.createElement('div');
+      card.className = 'obs-card';
+      const mapLink = (o.lat && o.lon)
+        ? `<a href="https://www.openstreetmap.org/?mlat=${o.lat}&mlon=${o.lon}#map=18/${o.lat}/${o.lon}" target="_blank">${o.lat.toFixed(4)},${o.lon.toFixed(4)}</a>`
+        : "GPS N/A";
+      const specNum = String(i + 1).padStart(2, '0');
+      card.innerHTML = `
+        <div class="perf"></div>
+        <div style="position:relative;">
+          <img src="${o.evidence_image_url}" alt="${o.label} evidence" loading="lazy" />
+          <div class="spec-tag">SPEC-${specNum}</div>
+        </div>
+        <div class="obs-body">
+          <div class="cat ${o.label}">${LABEL_NAMES[o.label] || o.label}${o.soft_signal ? '<span class="soft-flag" title="Harder to judge from a single still frame — treat as a rough signal, not a firm reading">SOFT SIGNAL</span>' : ''}</div>
+          ${gaugeSvg(o.confidence)}
+          <div class="gauge-pct">${Math.round(o.confidence * 100)}%</div>
+          <div class="sub">
+            ${new Date(o.timestamp).toLocaleTimeString()} · ${mapLink}<br/>
+            ${o.detector_name} v${o.detector_version}
+          </div>
+        </div>
+      `;
+      gridEl.appendChild(card);
+    });
+}
+</script>
+
+</body>
+</html>
