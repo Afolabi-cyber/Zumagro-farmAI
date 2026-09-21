@@ -45,6 +45,41 @@ class _DetectionOut(BaseModel):
     detections: list[_BoxOut]
 
 
+# Passed to Gemini's response_schema as a flat dict, NOT as the _DetectionOut
+# pydantic class directly. Passing a pydantic model with a nested model inside
+# it (list[_BoxOut] here) makes Pydantic generate $ref/$defs for the nested
+# type, and the google-genai SDK's own schema validation rejects that shape
+# client-side before the request is even sent (a known SDK bug - see
+# googleapis/python-genai issue #60). This flat, fully-inlined schema
+# sidesteps it entirely. _BoxOut/_DetectionOut above are still used to
+# validate the response we get back, just not to build the request schema.
+_RESPONSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "detections": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "box_2d": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": "[ymin, xmin, ymax, xmax], normalized 0-1000",
+                    },
+                    "label": {"type": "string", "description": "One of the requested labels"},
+                    "confidence": {
+                        "type": "number",
+                        "description": "Model's own confidence estimate, 0.0 to 1.0",
+                    },
+                },
+                "required": ["box_2d", "label", "confidence"],
+            },
+        }
+    },
+    "required": ["detections"],
+}
+
+
 class GeminiDetector(Detector):
     def __init__(self, name: str, version: str, confidence_threshold: float, labels: list[str]):
         if not GEMINI_API_KEY:
@@ -118,14 +153,15 @@ class GeminiDetector(Detector):
                 ],
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    response_schema=_DetectionOut,
+                    response_schema=_RESPONSE_SCHEMA,
                     temperature=0.2,
                 ),
             )
-            parsed: _DetectionOut = response.parsed
-            if parsed is None:
-                # Fall back to manual JSON parsing if SDK couldn't auto-parse
-                parsed = _DetectionOut.model_validate_json(response.text)
+            # response.parsed only auto-populates when response_schema is a
+            # pydantic class, which we deliberately don't use here (see the
+            # comment on _RESPONSE_SCHEMA above) - so this always goes
+            # through the manual JSON parse + pydantic validation path.
+            parsed = _DetectionOut.model_validate_json(response.text)
         except Exception as exc:
             self.error_count += 1
             self.last_error = str(exc)
